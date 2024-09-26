@@ -37,7 +37,7 @@
   become: true
   vars:
     rke_version: 1.3.2
-    hostname: "rancher.local"
+    hostname: "rancher1.local"
     kubectl_version: "1.21.6"
     helm_version: "3.7.1"
     helmfile_version: "0.142.0"
@@ -53,11 +53,24 @@
   become: true
   vars:
     rke2_api_ip : 192.168.68.70
-    hostname: "ran"
+    hostname: "rancher.local"
   roles:
   - rancher-server
   tags:
   - k8s-rancher-server
+
+- hosts: mona-host:&k8s_proxy
+  user: icspadmin
+  become: true
+  vars:
+    - project: "dmp"
+    - lan_interface: ens160
+    - external_check: false
+  roles:
+  - haproxy
+  tags:
+  - k8s-proxy
+
 
 # - hosts: mona-host:&k8s_workers
 #   user: icspadmin
@@ -67,23 +80,3 @@
 #   tags:
 #   - k8s-rancher-worker 
 
-- hosts: mona-host:&k8s_proxy
-  user: icspadmin
-  become: true
-  vars:
-    - project: "dmp"
-    - lan_interface: eth0
-    - external_check: false
-  roles:
-  - haproxy
-  tags:
-  - k8s-proxy
-
-
-- hosts: mona-host:&k8s_masters
-  user: icspadmin
-  become: true
-  roles:
-  - openvpn
-  tags:
-  - k8s-openvpn

@@ -29,29 +29,3 @@ mona-host:
         k8s_workers:
 
 
-    ### End of RKE section ###
-
-
-    ### Proxy & bastion section ###
-    # Proxy host
-    # k8s_proxy:
-    #   hosts:
-    #     proxy:
-    #       ansible_host: 10.0.0.150
-    # # Bastion host (maybe same server with proxy or not)
-    # k8s_bastion:
-    #   hosts:
-    #     bastion:
-    #       ansible_host: 10.0.0.150
-
-    # ### Proxy & bastion section ###
-    # # Proxy host
-    # k8s_proxy:
-    #   hosts:
-    #     bastion:
-    #       ansible_host: 10.0.0.254
-    # # Bastion host (maybe same server with proxy or not)
-    # k8s_bastion:
-    #   hosts:
-    #     bastion:
-    #       ansible_host: 10.0.0.254
