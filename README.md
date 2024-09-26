@@ -1,5 +1,4 @@
-#/ DEVOPS IN ICSP /
-# RKE2 Ansible Role
+# DEVOPS ICSP  -  RKE2 Ansible Role
 
 [![Role version](https://img.shields.io/github/v/release/lablabs/ansible-role-rke2)](https://galaxy.ansible.com/ui/standalone/roles/lablabs/rke2)
 [![Role downloads](https://img.shields.io/ansible/role/d/lablabs/rke2)](https://galaxy.ansible.com/lablabs/rke2)
