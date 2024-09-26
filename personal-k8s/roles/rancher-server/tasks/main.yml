@@ -1,0 +1,111 @@
+---
+- name: Gather the package facts
+  ansible.builtin.package_facts:
+
+
+- name: Ensure kubeconfig is set up correctly
+  block:
+    - name: Check if /root/.kube/config exists
+      stat:
+        path: /root/.kube/config
+      register: kube_config_stat
+
+    - name: Fail if /root/.kube/config does not exist
+      fail:
+        msg: "/root/.kube/config does not exist on the remote server. Stopping the process."
+      when: not kube_config_stat.stat.exists
+
+- name: Install pip3 module if not exist
+  apt:
+    name: python3-pip
+    state: present
+
+- name: Install pip module for ansible 
+  pip:
+    name: "{{ item }}"
+    executable: pip3
+  with_items:
+    - openshift
+
+# Install cert-manager
+- name: Create a k8s namespace for cert-manager
+  kubernetes.core.k8s:
+    name: cert-manager
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Add Jetstack Helm repository
+  command: helm repo add jetstack https://charts.jetstack.io
+
+- name: Update Helm repositories
+  command: helm repo update
+
+- name: Install cert-manager
+  shell:
+    cmd: >-
+      helm upgrade --install cert-manager jetstack/cert-manager  --namespace cert-manager --create-namespace --set installCRDs=true
+
+- name: Create a k8s namespace for Rancher
+  kubernetes.core.k8s:
+    name: cattle-system
+    api_version: v1
+    kind: Namespace
+    state: present
+
+# - name: Copy SSL file to ~/.kube/ for install secret
+#   copy:
+#     src: "./roles/common/files/etc/ssl/mona.host/{{ item }}"
+#     dest: ~/.kube/
+#   with_items:
+#     - mona.host.crt
+#     - mona.host.key
+#     - mona.host.chain
+
+# - name: Create SSL certificate chain
+#   shell:
+#     cmd: 'cat ~/.kube/mona.host.crt ~/.kube/mona.host.chain > ~/.kube/mona.host.pem'
+
+# - name: Uninstall tls secret if any
+#   shell:
+#     cmd: 'kubectl -n cattle-system delete secret tls-rancher-ingress || :'
+
+# - name: Install tls secret
+#   shell:
+#     cmd: 'kubectl -n cattle-system create secret tls tls-rancher-ingress --cert=/root/.kube/mona.host.pem --key=/root/.kube/mona.host.key'
+
+# - name: Uninstall bootstrap-secret if any
+#   shell:
+#     cmd: 'kubectl -n cattle-system delete secret bootstrap-secret || :'
+
+- name: Add Rancher Helm repository
+  command: helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
+
+- name: Update Helm repositories
+  command: helm repo update
+
+- name: Install Rancher with cert-manager annotations
+  shell:
+    cmd: >-
+      helm upgrade --install rancher rancher-latest/rancher
+      --namespace cattle-system
+      --set hostname={{ hostname }}
+      --set replicas=3
+      --set ingress.tls.source=letsEncrypt
+      --set letsEncrypt.ingress.class=nginx
+      --set letsEncrypt.email=thoai.vo@mona.host
+      --set ingress.extraAnnotations."nginx\.ingress\.kubernetes\.io/proxy-body-size"=50m
+      --set max-pods=220
+
+- name: Add Rancher Helm repository
+  command: helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
+
+- name: Update Helm repositories
+  command: helm repo update
+
+- name: Install NFS support
+  shell:
+    cmd: >-
+      helm upgrade --install nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner 
+      --set nfs.server=10.1.0.50 
+      --set nfs.path=/data/nfs/kubedata

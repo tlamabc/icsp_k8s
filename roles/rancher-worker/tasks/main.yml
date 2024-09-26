@@ -1,0 +1,52 @@
+- name: Add ceph apt key
+  apt_key:
+    url: https://download.ceph.com/keys/release.asc
+    state: present
+
+- name: Add k8s apt repo
+  apt_repository:
+    repo: deb https://download.ceph.com/debian-pacific/ focal main
+    state: present
+
+- name: install ceph common
+  package:
+    name: ceph-common
+    state: present
+
+- name: Install ceph support packages
+  package:
+    name: "{{item}}"
+    state: present
+  with_items:
+    - xfsprogs
+
+- name: Load rbd module
+  community.general.modprobe:
+    name: "{{item}}"
+    state: present
+  with_items:
+    - rbd
+
+- name: Load rbd mod at boot
+  lineinfile:
+    path: /etc/modules-load.d/rbd.conf
+    line: "{{item}}"
+    state: present
+    create: yes
+  with_items:
+    - rbd
+
+- name: Create ceph folder
+  file:
+    path: /etc/ceph
+    state: directory
+
+- name: Copy ceph file to /etc/ceph
+  copy:
+    src: "etc/ceph/{{item}}"
+    dest: /etc/ceph
+  with_items:
+    - ceph.client.k8s.keyring
+    - k8s.key
+    - secret.xml
+    - ceph.conf

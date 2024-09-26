@@ -1,0 +1,37 @@
+- name: Install haproxy
+  package:
+    name:
+      - haproxy
+    state: latest
+
+- name: Copy haproxy configure
+  template:
+    src: "haproxy.cfg.j2"
+    dest: /etc/haproxy/haproxy.cfg
+
+- name: Start haproxy
+  service:
+    name: haproxy
+    enabled: yes
+    state: started
+
+- name: Restart haproxy
+  service:
+    name: haproxy
+    state: restarted
+
+- name: Copy rsyslog
+  copy:
+    src: etc/rsyslog.d/49-haproxy.conf
+    dest: /etc/rsyslog.d/49-haproxy.conf
+  notify: Restart rsyslog
+
+- name: allow port http & https on firewall
+  firewalld:
+    service: "{{ item }}"
+    permanent: yes
+    immediate: yes
+    state: enabled
+  with_items:
+    - http
+    - https

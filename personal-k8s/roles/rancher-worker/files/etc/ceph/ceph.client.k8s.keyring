@@ -1,0 +1,4 @@
+[client.k8s]
+	key = AQD6P4xilEGLLxAAjd7qJFNBmnizP228+Faa8w==
+	caps mon = "allow r"
+	caps osd = "allow class-read object_prefix rbd_children, allow rwx pool=k8s-pv"

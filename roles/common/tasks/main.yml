@@ -1,0 +1,121 @@
+- name: Update and upgrade apt packages
+  apt:
+    update_cache: yes
+    upgrade: safe
+
+- name: Install packages
+  apt:
+    name: '{{ item }}'
+    state: present
+  loop:
+    - cron
+    - perl
+    - python3
+    - sudo
+    - wget
+    - htop
+    - sysstat
+    - ngrep
+    - make
+    - dstat
+    - rsync
+    - ntp
+    - nano
+    - elinks
+    - net-tools
+    - telnet
+    - traceroute
+    - iotop
+    - iftop
+    - lsof
+    - firewalld
+
+- name: Using vim as default editor
+  lineinfile:
+    path: /root/.bashrc
+    line: 'alias vi=vim'
+    state: present
+    create: yes
+
+- name: Using bright color for vim
+  lineinfile:
+    path: /root/.vimrc
+    line: 'color desert'
+    state: present
+    create: yes
+
+- name: Add datetime to command history
+  lineinfile:
+    path: /root/.bashrc
+    line: 'export HISTTIMEFORMAT="%d/%m/%y %T "'
+    state: present
+    create: yes
+
+- name: Add group wheel can sudo to root without password
+  lineinfile:
+    path: /etc/sudoers
+    line: '%wheel        ALL=(ALL)       NOPASSWD: ALL'
+    state: present
+    create: yes
+
+- name: Turnoff ssh login by password
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PasswordAuthentication '
+    line: 'PasswordAuthentication no'
+
+- name: increase default limit
+  lineinfile:
+    path: /etc/security/limits.conf
+    line: '{{ item }}'
+    state: present
+    create: yes
+  with_items:
+    - '* soft nproc 102400'
+    - '* hard nproc 102400'
+    - '* soft nofile 102400'
+    - '* hard nofile 102400'
+    - 'root soft nproc 102400'
+    - 'root hard nproc 102400'
+    - 'root soft nofile 102400'
+    - 'root hard nofile 102400'
+
+- name: Tunning sysctl
+  lineinfile:
+    path: /etc/sysctl.conf
+    line: '{{ item }}'
+    state: present
+    create: yes
+  with_items:
+    - 'net.ipv4.tcp_fin_timeout = 1'
+    - 'net.ipv4.tcp_tw_reuse = 1'
+    - 'net.ipv4.ip_default_ttl = 128'
+    - 'net.ipv4.icmp_echo_ignore_broadcasts = 1'
+    - 'net.ipv4.tcp_keepalive_time = 10'
+    - 'net.ipv4.tcp_max_tw_buckets = 262144'
+    - 'net.ipv4.tcp_max_orphans = 262144'
+    - 'net.ipv4.tcp_synack_retries = 2'
+    - 'net.ipv4.tcp_syn_retries = 2'
+    - 'net.core.rmem_max = 16777216'
+    - 'net.core.rmem_default = 16777216'
+    - 'net.core.netdev_max_backlog = 262144'
+    - 'net.core.somaxconn = 262144'
+    - 'net.ipv4.tcp_rmem = 4096 87380 4194304'
+    - 'net.ipv4.tcp_wmem = 4096 87380 4194304'
+
+- name: Add public key user root
+  authorized_key:
+    user: root
+    state: present
+    key: https://gitlab.com/thoaivo.keys
+
+- name: Auto sync time
+  cron:
+    name: Sync time hourly
+    special_time: hourly
+    job: "/usr/sbin/ntpdate -b -s pool.ntp.org"
+    state: present
+
+- name: Set a hostname
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname_short }}"

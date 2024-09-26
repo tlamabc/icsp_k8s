@@ -1,0 +1,15 @@
+client
+dev tun
+remote {{ hostvars['bastion'].ansible_host }} {{openvpn_port}} udp4
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+remote-cert-tls server
+cipher AES-256-CBC
+verb 3
+data-ciphers AES-256-CBC:AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305
+data-ciphers-fallback AES-256-CBC
+auth SHA256
+tls-client
+key-direction 1

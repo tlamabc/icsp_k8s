@@ -1,0 +1,63 @@
+- name: Install firewalld
+  package:
+    name: firewalld
+    state: present
+
+- name: Enable firewalld
+  service:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: Enable IP forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    state: present
+
+- name: Make IP forwarding persistent across reboots
+  lineinfile:
+    path: /etc/sysctl.conf
+    regexp: '^#net.ipv4.ip_forward=1'
+    line: 'net.ipv4.ip_forward=1'
+    state: present
+
+- name: Configure firewalld to allow masquerading on the WAN interface
+  firewalld:
+    zone: public
+    masquerade: yes
+    state: enabled
+    permanent: yes
+    immediate: yes
+
+- name: Configure firewalld to allow traffic on the LAN interface
+  firewalld:
+    zone: trusted
+    interface: eth1
+    state: enabled
+    permanent: yes
+    immediate: yes
+
+- name: Add a rule to allow forwarding traffic from LAN to WAN
+  firewalld:
+    state: enabled
+    permanent: yes
+    immediate: yes
+    zone: trusted
+    rich_rule: 'rule family="ipv4" source address="{{local_network}}" masquerade'
+
+
+- name: Add rich rule to forward port 3394 UDP to 10.1.0.11:3394
+  ansible.posix.firewalld:
+    zone: public
+    rich_rule: 'rule family="ipv4" forward-port port="3394" protocol="udp" to-port="3394" to-addr="10.1.0.11"'
+    permanent: yes
+    immediate: yes
+    state: enabled
+
+- name: allow port 3394 udp
+  firewalld:
+    port: "3394/udp"
+    permanent: yes
+    immediate: yes
+    state: enabled

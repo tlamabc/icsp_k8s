@@ -1,0 +1,237 @@
+- name: Check if OpenVPN is installed
+  command: dpkg -l openvpn
+  register: openvpn_installed
+  ignore_errors: true
+
+- name: Install OpenVPN and Easy-RSA if not installed
+  apt:
+    name:
+      - openvpn
+      - easy-rsa
+    state: present
+  when: openvpn_installed.rc != 0
+
+- name: Make Easy-RSA directory if not exists
+  file:
+    path: /etc/openvpn/easy-rsa
+    state: directory
+    owner: icspadmin
+    group: icspadmin
+  when: openvpn_installed.rc != 0
+
+- name: Copy Easy-RSA scripts if not exists
+  command: cp -rf /usr/share/easy-rsa /etc/openvpn/
+  when: openvpn_installed.rc != 0
+
+- name: Create Easy-RSA vars file if not exists
+  copy:
+    dest: /etc/openvpn/easy-rsa/vars
+    content: |
+      set_var EASYRSA_REQ_COUNTRY    "VN"
+      set_var EASYRSA_REQ_PROVINCE   "Ho Chi Minh"
+      set_var EASYRSA_REQ_CITY       "Ho Chi Minh"
+      set_var EASYRSA_REQ_ORG        "Mona Host"
+      set_var EASYRSA_REQ_EMAIL      "thoai.vo@mona.host"
+      set_var EASYRSA_REQ_OU         "Devops"
+      set_var EASYRSA_KEY_SIZE       2048
+      set_var EASYRSA_ALGO           rsa
+      set_var EASYRSA_CA_EXPIRE      3650
+      set_var EASYRSA_CERT_EXPIRE    3650
+      set_var EASYRSA_CRL_DAYS       180
+  when: openvpn_installed.rc != 0
+
+- name: Remove pki folder before init 
+  file:
+    path: /etc/openvpn/easy-rsa/pki
+    state: absent
+  when: openvpn_installed.rc != 0
+
+- name: Initialize the PKI if not exists
+  command: /etc/openvpn/easy-rsa/easyrsa init-pki
+  args:
+    chdir: /etc/openvpn/easy-rsa/
+  when: openvpn_installed.rc != 0
+
+- name: Build the CA if not exists
+  command: /etc/openvpn/easy-rsa/easyrsa build-ca nopass
+  args:
+    chdir: /etc/openvpn/easy-rsa/
+  environment:
+    EASYRSA_BATCH: "yes"
+  when: openvpn_installed.rc != 0
+
+- name: Generate server certificate and key if not exists
+  command: /etc/openvpn/easy-rsa/easyrsa build-server-full server nopass
+  args:
+    chdir: /etc/openvpn/easy-rsa/
+  when: openvpn_installed.rc != 0
+
+- name: Generate ta.key if not exists
+  shell: openvpn --genkey --secret /etc/openvpn/easy-rsa/pki/ta.key
+  args:
+    creates: /etc/openvpn/easy-rsa/pki/ta.key
+  when: openvpn_installed.rc != 0
+
+- name: Copy ta.key to OpenVPN server directory
+  copy:
+    src: /etc/openvpn/easy-rsa/pki/ta.key
+    dest: /etc/openvpn/server/ta.key
+    remote_src: yes
+  when: openvpn_installed.rc != 0
+
+- name: Generate Diffie-Hellman key if not exists
+  command: /etc/openvpn/easy-rsa/easyrsa gen-dh
+  args:
+    chdir: /etc/openvpn/easy-rsa/
+  when: openvpn_installed.rc != 0
+
+- name: Copy server configuration if not exists
+  template:
+    src: server.conf.j2
+    dest: /etc/openvpn/server.conf
+  when: openvpn_installed.rc != 0
+
+- name: Copy server certificate and key if not exists
+  copy:
+    src: /etc/openvpn/easy-rsa/pki/issued/server.crt
+    dest: /etc/openvpn/server/
+    remote_src: yes
+  when: openvpn_installed.rc != 0
+
+- name: Copy server key if not exists
+  copy:
+    src: /etc/openvpn/easy-rsa/pki/private/server.key
+    dest: /etc/openvpn/server/
+    remote_src: yes
+  when: openvpn_installed.rc != 0
+
+- name: Copy CA certificate if not exists
+  copy:
+    src: /etc/openvpn/easy-rsa/pki/ca.crt
+    dest: /etc/openvpn/server/
+    remote_src: yes
+  when: openvpn_installed.rc != 0
+
+- name: Copy DH key if not exists
+  copy:
+    src: /etc/openvpn/easy-rsa/pki/dh.pem
+    dest: /etc/openvpn/server/
+    remote_src: yes
+  when: openvpn_installed.rc != 0
+
+- name: Enable and start OpenVPN service
+  systemd:
+    name: openvpn@server
+    enabled: yes
+    state: started
+  when: openvpn_installed.rc != 0
+
+#- name: Add port 2294/udp to firewalld and allow
+#  firewalld:
+#    port: 2294/udp
+#    permanent: yes
+#    immediate: yes
+#    state: #enabled
+#  when: openvpn_installed.rc != 0
+
+- name: Allow IP_Forward from OpenVPN to K8S
+  include_tasks: ip_forward.yml
+
+- name: Create client configuration directory
+  file:
+    path: /etc/openvpn/client-configs
+    state: directory
+    owner: icspadmin
+    group: icspadmin
+    mode: '0755'
+
+- name: Create base client configuration file
+  template:
+    src: client_base.conf.j2
+    dest: /etc/openvpn/client-configs/base.conf
+
+- name: Create client configuration generation script
+  copy:
+    dest: /etc/openvpn/client-configs/gen-client-config.sh
+    content: |
+      #!/bin/bash
+
+      # Variables
+      KEY_DIR=/etc/openvpn/easy-rsa/pki
+      OUTPUT_DIR=/etc/openvpn/client-configs/files
+      BASE_CONFIG=/etc/openvpn/client-configs/base.conf
+
+      # Ensure output directory exists
+      mkdir -p ${OUTPUT_DIR}
+
+      # Generate client configuration file
+      cat ${BASE_CONFIG} \
+          <(echo -e '<ca>') \
+          ${KEY_DIR}/ca.crt \
+          <(echo -e '</ca>\n<cert>') \
+          ${KEY_DIR}/issued/${1}.crt \
+          <(echo -e '</cert>\n<key>') \
+          ${KEY_DIR}/private/${1}.key \
+          <(echo -e '</key>\n<tls-crypt>') \
+          ${KEY_DIR}/ta.key \
+          <(echo -e '</tls-crypt>') \
+          > ${OUTPUT_DIR}/${1}.ovpn
+
+- name: Set execution for gen-client-config.sh
+  file:
+    path: /etc/openvpn/client-configs/gen-client-config.sh
+    mode: '0755'
+
+- name: Get list of existing VPN users
+  shell: ls /etc/openvpn/easy-rsa/pki/issued | grep -v server.crt | sed 's/.crt//'
+  register: existing_vpn_users
+
+- name: Create client certificates for users in the list
+  loop: "{{ vpn_users }}"
+  shell: /etc/openvpn/easy-rsa/easyrsa build-client-full {{ item }} nopass
+  args:
+    chdir: /etc/openvpn/easy-rsa/
+  when: item not in existing_vpn_users.stdout_lines
+
+- name: Generate client configuration for users in the list
+  loop: "{{ vpn_users }}"
+  shell: ./gen-client-config.sh {{ item }}
+  args:
+    chdir: /etc/openvpn/client-configs
+  when: item not in existing_vpn_users.stdout_lines
+
+- name: Display client configuration for users in the list
+  loop: "{{ vpn_users }}"
+  shell: cat /etc/openvpn/client-configs/files/{{ item }}.ovpn
+  register: client_configs
+  when: item in vpn_users
+
+# - name: Show client configuration for users in the list
+#   debug:
+#     msg: "{{ item.stdout_lines }}"
+#   loop: "{{ client_configs.results }}"
+#   loop_control:
+#     label: "{{ item.item }}"
+
+- name: Revoke client certificates for users not in the list
+  loop: "{{ existing_vpn_users.stdout_lines }}"
+  shell: echo yes | /etc/openvpn/easy-rsa/easyrsa revoke {{ item }}
+  args:
+    chdir: /etc/openvpn/easy-rsa/
+  when: item not in vpn_users
+
+- name: Generate CRL (Certificate Revocation List)
+  shell: /etc/openvpn/easy-rsa/easyrsa gen-crl
+  args:
+    chdir: /etc/openvpn/easy-rsa/
+
+- name: Copy CRL to OpenVPN directory
+  copy:
+    src: /etc/openvpn/easy-rsa/pki/crl.pem
+    dest: /etc/openvpn/crl.pem
+    remote_src: yes
+
+- name: Restart OpenVPN to apply CRL
+  systemd:
+    name: openvpn@server
+    state: restarted

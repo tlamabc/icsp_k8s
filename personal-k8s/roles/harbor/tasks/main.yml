@@ -1,0 +1,86 @@
+---
+- name: Ensure Harbor installation directory exists
+  file:
+    path: "{{ harbor_install_dir }}"
+    state: directory
+
+- name: Download Harbor installer
+  get_url:
+    url: "https://github.com/goharbor/harbor/releases/download/v{{ harbor_version }}/harbor-online-installer-v{{ harbor_version }}.tgz"
+    dest: "/tmp/harbor-online-installer-v{{ harbor_version }}.tgz"
+
+- name: Extract Harbor installer
+  unarchive:
+    src: "/tmp/harbor-online-installer-v{{ harbor_version }}.tgz"
+    dest: "{{ harbor_install_dir }}"
+    remote_src: yes
+
+- name: Copy harbor.yml configuration
+  template:
+    src: harbor.yml.tmpl
+    dest: "{{ harbor_install_dir }}/harbor.yml"
+
+
+########### Edit configuration for Harbor
+- name: Edit hostname in harbor.yml
+  lineinfile:
+    path: /opt/harbor/harbor.yml
+    regexp: '^hostname:'
+    line: "hostname: {{ harbor_hostname }}"
+    state: present
+    create: yes
+
+- name: Edit certificate in harbor.yml
+  lineinfile:
+    path: /opt/harbor/harbor.yml
+    regexp: '^certificate:'
+    line: "certificate: {{ harbor_certificate }}"
+    state: present
+    create: yes
+
+- name: Edit private_key in harbor.yml
+  lineinfile:
+    path: /opt/harbor/harbor.yml
+    regexp: '^private_key:'
+    line: "private_key: {{ harbor_private_key }}"
+    state: present
+    create: yes
+
+- name: Edit database password in harbor.yml
+  lineinfile:
+    path: /opt/harbor/harbor.yml
+    regexp: '^password:'
+    line: "password: {{ harbor_db_password }}"
+    state: present
+    create: yes
+
+- name: Edit data_volume in harbor.yml
+  lineinfile:
+    path: /opt/harbor/harbor.yml
+    regexp: '^data_volume:'
+    line: "data_volume: {{ harbor_data_volume }}"
+    state: present
+    create: yes
+
+- name: Edit log location in harbor.yml
+  lineinfile:
+    path: /opt/harbor/harbor.yml
+    regexp: '^location:'
+    line: "location: {{ harbor_log_location }}"
+    state: present
+    create: yes
+
+
+- name: Run Harbor prepare script
+  command: "./prepare"
+  args:
+    chdir: "{{ harbor_install_dir }}"
+
+
+- name: Run Harbor install script
+  command: "./install.sh"
+  args:
+    chdir: "{{ harbor_install_dir }}"
+
+
+

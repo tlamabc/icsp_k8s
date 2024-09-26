@@ -1,0 +1,9 @@
+- name: Restart filebeat
+  service:
+    name: filebeat
+    state: restarted
+
+- name: Restart rsyslog
+  service:
+    name: rsyslog
+    state: restarted

@@ -1,0 +1,9 @@
+harbor_version: "2.11.0" ###### 
+harbor_install_dir: "/opt/harbor" 
+harbor_hostname: "harbor.mona.host" #########  FQDN is necessary
+harbor_admin_password: "MonaM@2024" ######## Edit for production environment
+harbor_certificate: "/opt/Docker/harbor/harbor/mona.host.bundle.crt" ########## CRT is included cert + chain file if necessary
+harbor_private_key: "/opt/Docker/harbor/harbor/mona.host.key" 
+harbor_db_password: "root123"    ###### Edit for production environemnt
+harbor_data_volume: "/data"      ###### NFS or dedicated location storage to store data
+harbor_log_location: "/var/log/harbor" ########## Log location

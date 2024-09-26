@@ -1,0 +1,32 @@
+- name: Fetch public keys from the specified URLs
+  uri:
+    url: "{{ item.key }}"
+    return_content: yes
+  register: user_keys
+  loop: "{{ ssh_users }}"
+  changed_when: false
+
+- name: Combine fetched keys into a single list
+  set_fact:
+    fetched_keys: "{{ user_keys.results | map(attribute='content') | join('\n') | split('\n') }}"
+
+- name: Get current authorized keys
+  command: cat /root/.ssh/authorized_keys
+  register: current_authorized_keys
+  changed_when: false
+
+- name: Remove public keys not in the fetched list
+  authorized_key:
+    user: icspadmin
+    state: absent
+    key: "{{ item }}"
+  loop: "{{ current_authorized_keys.stdout_lines }}"
+  when: item not in fetched_keys
+
+- name: Add public keys for users in the list
+  authorized_key:
+    user: icspadmin
+    state: present
+    key: "{{ item }}"
+  loop: "{{ fetched_keys }}"
+  when: item != ''

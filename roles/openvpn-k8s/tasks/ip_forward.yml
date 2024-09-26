@@ -1,0 +1,52 @@
+# roles/ip_forward/tasks/main.yml
+---
+- name: Ensure IP forwarding is enabled
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    state: present
+    sysctl_set: yes
+
+- name: Add NAT rules for OpenVPN network
+  iptables:
+    table: nat
+    chain: POSTROUTING
+    source: "{{ openvpn_network }}"
+    destination: "{{ item.subnet }}"
+    jump: MASQUERADE
+  loop: "{{ k8s_subnets }}"
+  notify: Save iptables rules
+
+- name: Allow traffic from OpenVPN network to Kubernetes subnets
+  iptables:
+    chain: FORWARD
+    source: "{{ openvpn_network.split('/')[0] }}"
+    destination: "{{ item.subnet.split('/')[0] }}"
+    jump: ACCEPT
+  loop: "{{ k8s_subnets }}"
+  notify: Save iptables rules
+
+- name: Allow traffic from Kubernetes subnets to OpenVPN network
+  iptables:
+    chain: FORWARD
+    source: "{{ item.subnet.split('/')[0] }}"
+    destination: "{{ openvpn_network.split('/')[0] }}"
+    jump: ACCEPT
+  loop: "{{ k8s_subnets }}"
+  notify: Save iptables rules
+
+- name: Install iptables-persistent package
+  apt:
+    name: iptables-persistent
+    state: present
+
+- name: Ensure iptables rules are saved
+  command: netfilter-persistent save
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  notify: Save iptables rules
+
+# Handler to save iptables rules
+- name: Save iptables rules
+  command: service iptables save
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat' or ansible_distribution == 'Fedora'
+

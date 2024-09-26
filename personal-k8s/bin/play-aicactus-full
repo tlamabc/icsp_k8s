@@ -1,0 +1,13 @@
+#!/bin/bash
+# Setup common package and add keypair for all server
+ansible-playbook -i inventory/aicactus.yml aicactus.yml initial
+# Setup gateway server (router, openvpn)
+ansible-playbook -i inventory/aicactus.yml aicactus.yml gw-initial
+# Initial k8s cluster (common, keypair, disable firewall)
+ansible-playbook -i inventory/aicactus.yml aicactus.yml k8s-initial
+# Deploy k8s cluster using lablab.rke2
+ansible-playbook -i inventory/aicactus.yml aicactus.yml k8s-deploy
+# Setup utils on bastion host (kubectl, k9s, add cluster config, install cert-manager and rancher-server)
+ansible-playbook -i inventory/aicactus.yml aicactus.yml k8s-utils
+# Setup haproxy loadbalancert
+ansible-playbook -i inventory/aicactus.yml aicactus.yml k8s-loadbalancer

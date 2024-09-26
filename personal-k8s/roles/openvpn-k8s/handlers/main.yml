@@ -1,0 +1,13 @@
+- name: Restart OpenVPN
+  systemd:
+    name: openvpn@server
+    state: restarted
+
+- name: Save iptables rules
+  command: netfilter-persistent save
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Save iptables rules (CentOS/RedHat/Fedora)
+  command: service iptables save
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat' or ansible_distribution == 'Fedora'
+

@@ -1,0 +1,10 @@
+### Subnets need for k8s
+openvpn_network: "10.9.0.0/24"
+openvpn_port: 3394
+k8s_subnets:
+  - subnet: "10.42.0.0/16"
+    netmask: "255.255.0.0"
+  - subnet: "10.43.0.0/16"
+    netmask: "255.255.0.0"
+  - subnet: "10.1.0.0/24"
+    netmask: "255.255.255.0"

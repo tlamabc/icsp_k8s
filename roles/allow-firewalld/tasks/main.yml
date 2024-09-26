@@ -1,0 +1,32 @@
+---
+- name: Ensure Firewalld is installed
+  apt:
+    name: firewalld
+    state: present
+    update_cache: yes
+
+- name: Enable and start Firewalld
+  systemd:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: Allow required ports with Firewalld
+  firewalld:
+    port: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: yes
+  loop:
+    - 80/tcp       # HTTP for Rancher
+    - 443/tcp      # HTTPS for Rancher
+    - 9345/tcp     # RKE2 Supervisor API
+    - 6443/tcp     # Kubernetes API
+    - 10250/tcp    # Kubelet metrics
+    - 2379/tcp     # etcd client
+    - 2380/tcp     # etcd peer
+    - 8472/udp     # Flannel VXLAN
+    - 30000-32767/tcp # NodePort range
+    - 9443/tcp     # Rancher Webhook
+  notify:
+    - Reload Firewalld
