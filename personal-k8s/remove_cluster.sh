@@ -55,7 +55,7 @@ remove_rke2() {
 remove_rke2_remote() {
     NODE=$1
     echo "Removing RKE2 from remote node $NODE..."
-    ssh root@$NODE "$(declare -f remove_rke2); remove_rke2"
+    ssh icspadmin@$NODE "$(declare -f remove_rke2); remove_rke2"
 }
 
 # Main script
