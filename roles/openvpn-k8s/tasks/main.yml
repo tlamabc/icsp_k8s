@@ -15,8 +15,8 @@
   file:
     path: /etc/openvpn/easy-rsa
     state: directory
-    owner: root
-    group: root
+    owner: icspadmin
+    group: icspadmin
   when: openvpn_installed.rc != 0
 
 - name: Copy Easy-RSA scripts if not exists
@@ -141,8 +141,8 @@
   file:
     path: /etc/openvpn/client-configs
     state: directory
-    owner: root
-    group: root
+    owner: icspadmin
+    group: icspadmin
     mode: '0755'
 
 - name: Create base client configuration file

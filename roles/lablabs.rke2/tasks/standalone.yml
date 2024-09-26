@@ -4,16 +4,16 @@
   ansible.builtin.file:
     state: directory
     path: /etc/rancher/rke2
-    owner: root
-    group: root
+    owner: icspadmin
+    group: icspadmin
     mode: 0755
 
 - name: Copy RKE2 config
   ansible.builtin.template:
     src: "{{ rke2_config }}"
     dest: /etc/rancher/rke2/config.yaml
-    owner: root
-    group: root
+    owner: icspadmin
+    group: icspadmin
     mode: 0600
   notify: "Config file changed"
 
@@ -21,8 +21,8 @@
   ansible.builtin.template:
     src: "{{ rke2_custom_registry_path }}"
     dest: /etc/rancher/rke2/registries.yaml
-    owner: root
-    group: root
+    owner: icspadmin
+    group: icspadmin
     mode: 0600
   when: rke2_custom_registry_mirrors.0.endpoint | length > 0
   notify: "Config file changed"
