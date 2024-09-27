@@ -1,0 +1,31 @@
+- hosts: mona-host:&k8s_cluster
+  become : true
+  roles:
+  - common
+  tags:
+  - k8s-cluster-common
+
+
+- hosts: mona-host:&k8s_cluster
+  become: true
+  roles:
+  - disable-firewalld
+  tags:
+  - k8s-cluster-disable-firewall
+
+- hosts: mona-host:&k8s_cluster
+  become: true
+  vars:
+    rke2_ha_mode: true
+    rke2_server_node_taints:
+      - 'CriticalAddonsOnly=true:NoExecute'
+    rke2_ha_mode_keepalived: true
+    rke2_api_ip : 192.168.68.70
+    rke2_servers_group_name: 'k8s_masters'
+    rke2_agents_group_name: 'k8s_workers'
+    rke2_cluster_group_name: 'k8s_cluster'
+  roles:
+  - lablabs.rke2
+  tags:
+  - k8s-cluster-rke2
+

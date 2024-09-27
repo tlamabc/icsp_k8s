@@ -10,26 +10,26 @@
   when: "'make' not in ansible_facts.packages"
 
 ### RKE
-# - name: Check that /usr/local/bin/rke-v{{rke_version}} exists
-#   stat:
-#     path: /usr/local/bin/rke-v{{rke_version}}
-#   register: stat_rke_result
+- name: Check that /usr/local/bin/rke-v{{rke_version}} exists
+  stat:
+    path: /usr/local/bin/rke-v{{rke_version}}
+  register: stat_rke_result
 
-# - name: Download rke
-#   get_url:
-#     url: https://github.com/rancher/rke/releases/download/v{{rke_version}}/rke_linux-amd64
-#     dest: /usr/local/bin/rke-v{{rke_version}}
-#     mode: '0755'
-#   when: not stat_rke_result.stat.exists
+- name: Download rke
+  get_url:
+    url: https://github.com/rancher/rke/releases/download/v{{rke_version}}/rke_linux-amd64
+    dest: /usr/local/bin/rke-v{{rke_version}}
+    mode: '0755'
+  when: not stat_rke_result.stat.exists
 
-# - name: Create a symbolic link for rke binary
-#   ansible.builtin.file:
-#     src: /usr/local/bin/rke-v{{rke_version}}
-#     dest: /usr/local/bin/rke
-#     owner: icspadmin
-#     group: icspadmin
-#     state: link
-#   when: not stat_rke_result.stat.exists
+- name: Create a symbolic link for rke binary
+  ansible.builtin.file:
+    src: /usr/local/bin/rke-v{{rke_version}}
+    dest: /usr/local/bin/rke
+    owner: root
+    group: root
+    state: link
+  when: not stat_rke_result.stat.exists
 
 ### Install kubectl
 - name: Check that /usr/local/bin/kubectl-{{kubectl_version}} exists
@@ -53,8 +53,8 @@
   ansible.builtin.file:
     src: /opt/kubectl/kubectl-{{kubectl_version}}
     dest: /usr/local/bin/kubectl
-    owner: icspadmin
-    group: icspadmin
+    owner: root
+    group: root
     state: link
   when: not stat_kubectl_result.stat.exists
 
@@ -68,31 +68,31 @@
 #### Install helm
 
 
-# - name: Check that /root/helm-v{{helm_version}}-linux-amd64.tar.gz exists
-#   stat:
-#     path: /root/helm-v{{helm_version}}-linux-amd64.tar.gz
-#   register: stat_helm_result
+- name: Check that /root/helm-v{{helm_version}}-linux-amd64.tar.gz exists
+  stat:
+    path: /root/helm-v{{helm_version}}-linux-amd64.tar.gz
+  register: stat_helm_result
 
-# - name: Download helm
-#   get_url:
-#     url: https://get.helm.sh/helm-v{{helm_version}}-linux-amd64.tar.gz
-#     dest: /root/helm-v{{helm_version}}-linux-amd64.tar.gz
-#     mode: '0644'
-#   when: not stat_helm_result.stat.exists
+- name: Download helm
+  get_url:
+    url: https://get.helm.sh/helm-v{{helm_version}}-linux-amd64.tar.gz
+    dest: /root/helm-v{{helm_version}}-linux-amd64.tar.gz
+    mode: '0644'
+  when: not stat_helm_result.stat.exists
 
-# - name: Extract helm
-#   unarchive:
-#     src: /root/helm-v{{helm_version}}-linux-amd64.tar.gz
-#     dest: /root
-#     remote_src: yes
-#   when: not stat_helm_result.stat.exists
+- name: Extract helm
+  unarchive:
+    src: /root/helm-v{{helm_version}}-linux-amd64.tar.gz
+    dest: /root
+    remote_src: yes
+  when: not stat_helm_result.stat.exists
 
-# - name: Copy helm bin file
-#   copy:
-#     src: /root/linux-amd64/helm
-#     dest: /usr/local/bin/helm
-#     remote_src: yes
-#     mode: '0755'
+- name: Copy helm bin file
+  copy:
+    src: /root/linux-amd64/helm
+    dest: /usr/local/bin/helm
+    remote_src: yes
+    mode: '0755'
 
 - name: Download Helm installation script
   get_url:
@@ -141,8 +141,8 @@
   ansible.builtin.file:
     src: /opt/rancher/rancher-v{{rancher_cli_version}}/rancher
     dest: /usr/local/bin/rancher
-    owner: icspadmin
-    group: icspadmin
+    owner: root
+    group: root
     state: link
   when: not stat_rancher_cli_result.stat.exists
 
@@ -157,16 +157,16 @@
 
 ########## Install k9s
 
-# - name: Download k9s release
-#   get_url:
-#     url: https://github.com/derailed/k9s/releases/download/v{{k9s_version}}/k9s_Linux_x86_64.tar.gz
-#     dest: /tmp/k9s_Linux_x86_64.tar.gz
+- name: Download k9s release
+  get_url:
+    url: https://github.com/derailed/k9s/releases/download/v{{k9s_version}}/k9s_Linux_x86_64.tar.gz
+    dest: /tmp/k9s_Linux_x86_64.tar.gz
 
-# - name: untar k9s
-#   unarchive:
-#     src: /tmp/k9s_Linux_x86_64.tar.gz
-#     dest: /usr/local/bin
-#     remote_src: yes
+- name: untar k9s
+  unarchive:
+    src: /tmp/k9s_Linux_x86_64.tar.gz
+    dest: /usr/local/bin
+    remote_src: yes
 
 - name: Check that k9s exist
   stat:
@@ -198,8 +198,8 @@
   ansible.builtin.file:
     src: /opt/k9s/k9s
     dest: /usr/local/bin/k9s
-    owner: icspadmin
-    group: icspadmin
+    owner: root
+    group: root
     state: link
   # when: not stat_k9s_result.stat.exists
 
@@ -208,13 +208,14 @@
     path: /root/.kube
     state: directory
     mode: '0700'
-    owner: icspadmin
-    group: icspadmin
+    owner: root
+    group: root
 
 - name: Copy {{customer_name}}.yaml to ~/.kube/config
   copy:
     src: "tmp/{{customer_name}}.yaml"
     dest: /root/.kube/config
-    owner: icspadmin
-    group: icspadmin
+    owner: root
+    group: root
     mode: '0600'
+
